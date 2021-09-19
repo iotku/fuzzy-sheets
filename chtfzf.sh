@@ -27,20 +27,45 @@ function syncSheetList {
     exit
 }
 
+function cachePreview {
+    # Hopefully avoid really bad situations
+    if [[ "$*" == "" ]]; then exit; fi
+    if [[ "$*" == "/" ]]; then exit; fi
+
+    # Just use curl directly if we don't have a cache directory (haven't done sync yet)
+    if [ ! -d "$CACHE_DIR" ]; then
+       curl -s "cht.sh/$*"
+       exit
+    fi
+
+    # Exists in cache
+    if [ -f "$CACHE_DIR/$*.sheet" ]; then
+        cat "$CACHE_DIR/$*.sheet"
+        exit
+    fi
+
+    # Make subdirectory structure to match preview
+    SUB_DIR="$(dirname "$CACHE_DIR/$*")"
+    [ ! -d  "$SUB_DIR" ] && mkdir -p "$SUB_DIR"
+    curl -s "cht.sh/$*" | tee "$CACHE_DIR/$*.sheet"
+    exit
+}
+
 function main {
     for i in "$@"; do 
         case "$i" in 
             -t) openMode="tmux";;
             sync) syncSheetList;;
+            preview) shift; cachePreview "$*";;
             *) ;; # Do nothing if no matches
         esac
     done
     # Use Search through main list.
     if [ -f "$CACHE_DIR/main.list" ]; then
         # Use cached list if it exists
-        search=$(grep -v ":list" "$CACHE_DIR/main.list" | fzf --preview="curl -s "cht.sh/{}"")
+        search=$(grep -v ":list" "$CACHE_DIR/main.list" | fzf --preview="${BASH_SOURCE[0]} preview "{}"")
     else
-        search=$(curl -s "cht.sh/:list" | grep -v ":list" | fzf --preview="curl -s "cht.sh/{}"")
+        search=$(curl -s "cht.sh/:list" | grep -v ":list" | fzf --preview="${BASH_SOURCE[0]} preview "{}"")
     fi
 
     # Direct match without /
@@ -52,7 +77,7 @@ function main {
     path="$search"
     # Read :lists to go deeper
     while [[ "${search: -1}" == "/" ]]; do
-        search=$(curl -s "cht.sh/$path:list" | grep -v ":list" | fzf --preview="curl -s "cht.sh/$path{}"")
+        search=$(curl -s "cht.sh/$path:list" | grep -v ":list" | fzf --preview="${BASH_SOURCE[0]} preview "$path{}"")
         path="$path$search"
     done
 
