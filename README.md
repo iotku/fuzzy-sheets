@@ -1,5 +1,6 @@
 # fuzzy-sheets
 FZF based client for cht.sh
+
 Requirements: bash, curl, fzf
 
 [![asciicast](https://asciinema.org/a/Yl7G87EAtMQtpWxsXPJr8zqIe.svg)](https://asciinema.org/a/Yl7G87EAtMQtpWxsXPJr8zqIe)
