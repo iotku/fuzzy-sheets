@@ -45,7 +45,7 @@ function cachePreview {
     fi
 
     # Make subdirectory structure to match preview
-    SUB_DIR="$(dirname "$CACHE_DIR/$*")"
+    SUB_DIR="$(dirname "$CACHE_DIR/$*.sheet")"
     [ ! -d  "$SUB_DIR" ] && mkdir -p "$SUB_DIR"
     curl -s "cht.sh/$*" | tee "$CACHE_DIR/$*.sheet"
     exit
