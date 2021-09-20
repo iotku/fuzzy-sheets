@@ -47,7 +47,16 @@ function cachePreview {
     # Make subdirectory structure to match preview
     SUB_DIR="$(dirname "$CACHE_DIR/$*.sheet")"
     [ ! -d  "$SUB_DIR" ] && mkdir -p "$SUB_DIR"
-    curl -s "cht.sh/$*" | tee "$CACHE_DIR/$*.sheet"
+    # sheet with status code as last line
+    sheet="$(curl -s -w "%{http_code}" "cht.sh/$*")"
+    statusCode="$(tail -n1 <<< "$sheet")"
+    sheet="$(sed '$d' <<< "$sheet")" # Remove status code from output
+    if [[ "$statusCode" == "200" ]]; then
+        tee "$CACHE_DIR/$*.sheet" <<< "$sheet"
+    else
+        # Don't cache error page
+        printf "Sorry, cht.sh returned non 200 status code (error):\n%s" "$sheet"
+    fi
     exit
 }
 
