@@ -13,8 +13,8 @@ openMode="bash"
 
 function openSheet {
     case "$openMode" in
-        tmux) tmux neww bash -c "curl -s "cht.sh/$*" | less -R";;
-        bash) curl -s "cht.sh/$*" | less -R;;
+        tmux) tmux neww bash -c "curl -sg "cht.sh/$*" | less -R";;
+        bash) curl -sg "cht.sh/$*" | less -R;;
         *) echo "Unknown openMode, set -t to use tmux, or no args to use bash directly"
     esac
 }
@@ -34,7 +34,7 @@ function cachePreview {
 
     # Just use curl directly if we don't have a cache directory (haven't done sync yet)
     if [ ! -d "$CACHE_DIR" ]; then
-       curl -s "cht.sh/$*"
+       curl -sg "cht.sh/$*"
        exit
     fi
 
@@ -48,7 +48,7 @@ function cachePreview {
     SUB_DIR="$(dirname "$CACHE_DIR/$*.sheet")"
     [ ! -d  "$SUB_DIR" ] && mkdir -p "$SUB_DIR"
     # sheet with status code as last line
-    sheet="$(curl -s -w "%{http_code}" "cht.sh/$*")"
+    sheet="$(curl -sg -w "%{http_code}" "cht.sh/$*")"
     statusCode="$(tail -n1 <<< "$sheet")"
     sheet="$(sed '$d' <<< "$sheet")" # Remove status code from output
     if [[ "$statusCode" == "200" ]]; then
@@ -72,9 +72,9 @@ function main {
     # Use Search through main list.
     if [ -f "$CACHE_DIR/main.list" ]; then
         # Use cached list if it exists
-        search=$(grep -v ":list" "$CACHE_DIR/main.list" | fzf --preview="${BASH_SOURCE[0]} preview "{}"")
+        search=$(grep -v ":list" "$CACHE_DIR/main.list" | fzf --preview="${BASH_SOURCE[0]} preview '{}'")
     else
-        search=$(curl -s "cht.sh/:list" | grep -v ":list" | fzf --preview="${BASH_SOURCE[0]} preview "{}"")
+        search=$(curl -sg "cht.sh/:list" | grep -v ":list" | fzf --preview="${BASH_SOURCE[0]} preview '{}'")
     fi
 
     # Direct match without /
@@ -86,7 +86,7 @@ function main {
     path="$search"
     # Read :lists to go deeper
     while [[ "${search: -1}" == "/" ]]; do
-        search=$(curl -s "cht.sh/$path:list" | grep -v ":list" | fzf --preview="${BASH_SOURCE[0]} preview "$path{}"")
+        search=$(curl -sg "cht.sh/$path:list" | grep -v ":list" | fzf --preview="${BASH_SOURCE[0]} preview "$path{}"")
         path="$path$search"
     done
 
