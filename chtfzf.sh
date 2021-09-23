@@ -19,6 +19,25 @@ function openSheet {
     esac
 }
 
+function query {
+    # Use Search through main list.
+    if [ -f "$CACHE_DIR/main.list" ]; then
+        # Use cached list if it exists
+        search=$(grep -v ":list" "$CACHE_DIR/main.list" | fzf --query="$*" --preview="${BASH_SOURCE[0]} preview '{}'")
+    else
+        search=$(curl -sg "cht.sh/:list" | grep -v ":list" | fzf --query="$*" --preview="${BASH_SOURCE[0]} preview '{}'")
+    fi
+
+    read -rp "query: " queryInput
+    queryInput=$(tr ' ' '+' <<< "$queryInput")
+    if [[ "${search: -1}" != "/" ]]; then
+         echo -ne "$search~$queryInput\n$search/$queryInput" | fzf --preview="${BASH_SOURCE[0]} preview '{}'"
+    else
+         echo -ne "$search$queryInput\n$search~$queryInput" | fzf  --preview="${BASH_SOURCE[0]} preview '{}'"
+    fi
+    exit
+}
+
 function syncSheetList {
     [ ! -d "$CACHE_DIR" ] && mkdir -p "$CACHE_DIR"
     printf "Saving main.list to %s\nDon't forget to sync in the future :)\n" "$CACHE_DIR"
@@ -65,6 +84,7 @@ function main {
         case "$i" in 
             -t) openMode="tmux";;
             sync) syncSheetList;;
+            query) shift; query $*;;
             preview) shift; cachePreview "$*";;
             *) ;; # Do nothing if no matches
         esac
