@@ -18,6 +18,7 @@ or to send a text based query:
     * -t              | Tmux Mode (sheet launches in new tmux window)
     * sync            | Cache main :list and enable preview caching
     * preview <sheet> | Preview a sheet (and cache it if sync has run)
+    * query           | After selecting, launch a text input to query question (i.e. go/ "open a file")
 
 ## Tmux Launch binding
 To launch fuzzy-sheets in a tmux window you can use the -t flag in your `tmux.conf` as such:
