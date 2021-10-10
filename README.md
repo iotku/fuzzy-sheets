@@ -3,7 +3,7 @@ FZF based client for cht.sh
 
 Requirements: bash, curl, fzf
 
-[![asciicast](https://asciinema.org/a/Yl7G87EAtMQtpWxsXPJr8zqIe.svg)](https://asciinema.org/a/Yl7G87EAtMQtpWxsXPJr8zqIe)
+[![asciicast](https://asciinema.org/a/438252.svg)](https://asciinema.org/a/438252)
 
 ## Usage
 Ensure chtfzf is marked executable (`chmod +x chtfzf.sh`) then run like any other shell script
