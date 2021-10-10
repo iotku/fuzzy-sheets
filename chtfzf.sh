@@ -48,6 +48,8 @@ function main {
 }
 
 function openSheet {
+    # Exit if empty string
+    if [[ "$1" == "" ]]; then exit; fi
     case "$openMode" in
         tmux) tmux neww bash -c "curl -sg "cht.sh/$*" | less -R";;
         bash) curl -sg "cht.sh/$*" | less -R;;
