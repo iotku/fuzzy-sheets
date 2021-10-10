@@ -11,6 +11,42 @@ set -euf -o pipefail
 CACHE_DIR="${HOME}/.local/share/chtfzf"
 openMode="bash"
 
+function main {
+    # Read Command Line Arguments
+    for i in "$@"; do
+        case "$i" in
+            -t) openMode="tmux";;
+            sync) syncSheetList;;
+            query) shift; query $*;;
+            preview) shift; cachePreview "$*";;
+            *) ;; # Do nothing if no matches
+        esac
+    done
+
+    # Use Search through main list.
+    if [ -f "$CACHE_DIR/main.list" ]; then
+        # Use cached list if it exists
+        search=$(grep -v ":list" "$CACHE_DIR/main.list" | fzf --preview="${BASH_SOURCE[0]} preview '{}'")
+    else
+        search=$(curl -sg "cht.sh/:list" | grep -v ":list" | fzf --preview="${BASH_SOURCE[0]} preview '{}'")
+    fi
+
+    # Direct match without /
+    if [[ "${search: -1}" != "/" ]]; then
+        openSheet "$search"
+        exit
+    fi
+
+    path="$search"
+    # Read :lists to go deeper
+    while [[ "${search: -1}" == "/" ]]; do
+        search=$(curl -sg "cht.sh/$path:list" | grep -v ":list" | fzf --preview="${BASH_SOURCE[0]} preview "$path{}"")
+        path="$path$search"
+    done
+
+    openSheet "$path"
+}
+
 function openSheet {
     case "$openMode" in
         tmux) tmux neww bash -c "curl -sg "cht.sh/$*" | less -R";;
@@ -31,10 +67,11 @@ function query {
     read -rp "query: " queryInput
     queryInput=$(tr ' ' '+' <<< "$queryInput")
     if [[ "${search: -1}" != "/" ]]; then
-         echo -ne "$search~$queryInput\n$search/$queryInput" | fzf --preview="${BASH_SOURCE[0]} preview '{}'"
+        openSheet "$(echo -ne "$search~$queryInput\n$search/$queryInput" | fzf --preview="${BASH_SOURCE[0]} preview '{}'")"
     else
-         echo -ne "$search$queryInput\n$search~$queryInput" | fzf  --preview="${BASH_SOURCE[0]} preview '{}'"
+        openSheet "$(echo -ne "$search$queryInput\n$search~$queryInput" | fzf  --preview="${BASH_SOURCE[0]} preview '{}'")"
     fi
+
     exit
 }
 
@@ -77,40 +114,6 @@ function cachePreview {
         printf "Sorry, cht.sh returned non 200 status code (error):\n%s" "$sheet"
     fi
     exit
-}
-
-function main {
-    for i in "$@"; do 
-        case "$i" in 
-            -t) openMode="tmux";;
-            sync) syncSheetList;;
-            query) shift; query $*;;
-            preview) shift; cachePreview "$*";;
-            *) ;; # Do nothing if no matches
-        esac
-    done
-    # Use Search through main list.
-    if [ -f "$CACHE_DIR/main.list" ]; then
-        # Use cached list if it exists
-        search=$(grep -v ":list" "$CACHE_DIR/main.list" | fzf --preview="${BASH_SOURCE[0]} preview '{}'")
-    else
-        search=$(curl -sg "cht.sh/:list" | grep -v ":list" | fzf --preview="${BASH_SOURCE[0]} preview '{}'")
-    fi
-
-    # Direct match without /
-    if [[ "${search: -1}" != "/" ]]; then
-        openSheet "$search"
-        exit
-    fi
-
-    path="$search"
-    # Read :lists to go deeper
-    while [[ "${search: -1}" == "/" ]]; do
-        search=$(curl -sg "cht.sh/$path:list" | grep -v ":list" | fzf --preview="${BASH_SOURCE[0]} preview "$path{}"")
-        path="$path$search"
-    done
-
-    openSheet "$path"
 }
 
 main $@ # Pass CLI args to main 
