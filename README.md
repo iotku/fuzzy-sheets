@@ -9,6 +9,10 @@ Requirements: bash, curl, fzf
 Ensure chtfzf is marked executable (`chmod +x chtfzf.sh`) then run like any other shell script
 
     $ ./chtfzf.sh
+    
+or to send a text based query:
+
+    $ ./chtfzf.sh query
 
 ## Options
     * -t              | Tmux Mode (sheet launches in new tmux window)
