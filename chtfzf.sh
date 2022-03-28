@@ -15,7 +15,7 @@ function main {
     # Read Command Line Arguments
     for i in "$@"; do
         case "$i" in
-            -t) openMode="tmux";;
+            -t) openMode="tmux"; shift;;
             sync) syncSheetList;;
             query) shift; query $*;;
             preview) shift; cachePreview "$*";;
@@ -23,33 +23,43 @@ function main {
         esac
     done
 
-    # Use Search through main list.
-    if [ -f "$CACHE_DIR/main.list" ]; then
-        # Use cached list if it exists
-        search=$(grep -v ":list" "$CACHE_DIR/main.list" | fzf --preview="${BASH_SOURCE[0]} preview '{}'")
-    else
-        search=$(curl -sg "cht.sh/:list" | grep -v ":list" | fzf --preview="${BASH_SOURCE[0]} preview '{}'")
-    fi
-
-    # Direct match without /
+    search="$(searchMain)"
+    pushd -n "$search" > /dev/null 2>&1
     if [[ "${search: -1}" != "/" ]]; then
         openSheet "$search"
         exit
     fi
 
-    path="$search"
-    # Read :lists to go deeper
-    while [[ "${search: -1}" == "/" ]]; do
-        search=$(curl -sg "cht.sh/$path:list" | grep -v ":list" | fzf --preview="${BASH_SOURCE[0]} preview "$path{}"")
-        path="$path$search"
-    done
+    while :; do # do while
+        search=$(curl -sg "cht.sh/$(getPath):list" | 
+            grep -v ":list" | 
+            fzf --bind "ctrl-d:print-query" --preview="${BASH_SOURCE[0]} preview "$(getPath){}"")
 
-    openSheet "$path"
+        if [[ "$search" == "" ]]; then # go up a level on ctrl-d
+            popd -n > /dev/null 2>&1
+            if [[ $? != 0 ]]; then
+                break
+            fi
+            continue
+        fi
+        [[ "${search: -1}" == "/" ]] || break # exit condition
+        pushd -n "$search" > /dev/null 2>&1
+    done
+    
+    if [[ "$search" == "" ]]; then
+        main
+        exit
+    fi
+    echo "opening $(getPath)$search"
+    openSheet "$(getPath)$search"
+}
+
+function getPath {
+    echo "$(dirs -p | tail -n +2 | sed 's/.$//' | tac | tr '\n' '/')"
 }
 
 function openSheet {
-    # Exit if empty string
-    if [[ "$1" == "" ]]; then exit; fi
+    if [[ "$1" == "" ]]; then exit; fi # Exit if empty string
     case "$openMode" in
         tmux) tmux neww bash -c "curl -sg "cht.sh/$*" | less -R";;
         bash) curl -sg "cht.sh/$*" | less -R;;
@@ -57,23 +67,30 @@ function openSheet {
     esac
 }
 
-function query {
-    # Use Search through main list.
+function searchMain {
     if [ -f "$CACHE_DIR/main.list" ]; then
         # Use cached list if it exists
-        search=$(grep -v ":list" "$CACHE_DIR/main.list" | fzf --query="$*" --preview="${BASH_SOURCE[0]} preview '{}'")
+        echo "$(grep -v ":list" "$CACHE_DIR/main.list" | fzf --query="$*" --preview="${BASH_SOURCE[0]} preview '{}'")"
     else
-        search=$(curl -sg "cht.sh/:list" | grep -v ":list" | fzf --query="$*" --preview="${BASH_SOURCE[0]} preview '{}'")
+        echo "$(curl -sg "cht.sh/:list" | grep -v ":list" | fzf --query="$*" --preview="${BASH_SOURCE[0]} preview '{}'")"
     fi
+}
 
+function query {
+    search="$(searchMain)"
     read -rp "query: " queryInput
     queryInput=$(tr ' ' '+' <<< "$queryInput")
+    if [[ "$queryInput" == "" ]]; then
+        openSheet "$(echo "$search")"
+        exit
+    fi
+
     if [[ "${search: -1}" != "/" ]]; then
         openSheet "$(echo -ne "$search~$queryInput\n$search/$queryInput" | fzf --preview="${BASH_SOURCE[0]} preview '{}'")"
     else
         openSheet "$(echo -ne "$search$queryInput\n$search~$queryInput" | fzf  --preview="${BASH_SOURCE[0]} preview '{}'")"
     fi
-
+    
     exit
 }
 
