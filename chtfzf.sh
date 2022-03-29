@@ -86,9 +86,9 @@ function query {
     fi
 
     if [[ "${search: -1}" != "/" ]]; then
-        openSheet "$(echo -ne "$search~$queryInput\n$search/$queryInput" | fzf --preview="${BASH_SOURCE[0]} preview '{}'")"
+        openSheet "$search/$queryInput"
     else
-        openSheet "$(echo -ne "$search$queryInput\n$search~$queryInput" | fzf  --preview="${BASH_SOURCE[0]} preview '{}'")"
+        openSheet "$search$queryInput"
     fi
     
     exit
