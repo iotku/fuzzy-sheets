@@ -14,6 +14,10 @@ or to send a text based query:
 
     $ ./chtfzf.sh query
 
+You can open a sheet or go a level deeper (for instance into `go/rosetta/` which contains additional sheets) by either hitting enter or double clicking on an entry.
+
+Prior to opening an entry you can press ctrl+d to go up a level should you not already be on the initial main list.
+
 ## Options
     * -t              | Tmux Mode (sheet launches in new tmux window)
     * sync            | Cache main :list and enable preview caching
